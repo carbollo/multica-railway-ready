@@ -20,6 +20,10 @@ This repository includes `Dockerfile.railway` and `railway.json` to run frontend
 - Next.js rewrites `/api`, `/ws`, `/auth`, and `/uploads` to internal backend automatically.
 - Migrations run on boot before server start.
 
+### Healthcheck stuck on “service unavailable”
+
+Railway probes your app with `Host: healthcheck.railway.app`. This repo allows that host in `apps/web/next.config.ts` (`experimental.serverActions.allowedOrigins`). The combined container entrypoint also avoids non-portable `wait -n` so the Next.js process actually binds to `$PORT`.
+
 ---
 
 ## Alternative: two Railway services from same repository
