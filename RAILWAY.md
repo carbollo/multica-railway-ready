@@ -16,13 +16,17 @@ This repository includes `Dockerfile.railway` and `railway.json` to run frontend
 ### Notes
 
 - Public URL serves the frontend.
-- Backend runs internally on `8080`.
+- Backend runs internally on `8081` (so it never collides with Railway’s `PORT`, often `8080`).
 - Next.js rewrites `/api`, `/ws`, `/auth`, and `/uploads` to internal backend automatically.
 - Migrations run on boot before server start.
 
 ### Healthcheck stuck on “service unavailable”
 
 Railway probes your app with `Host: healthcheck.railway.app`. This repo allows that host in `apps/web/next.config.ts` (`experimental.serverActions.allowedOrigins`). The combined container entrypoint also avoids non-portable `wait -n` so the Next.js process actually binds to `$PORT`.
+
+### Port conflict (`EADDRINUSE` on 8080)
+
+Railway often sets `PORT=8080` for the public listener. The Go API uses a separate internal port (`8081` by default). Do **not** set `BACKEND_PORT=8080` in Railway unless you also change the web build `REMOTE_API_URL` to match.
 
 ---
 
