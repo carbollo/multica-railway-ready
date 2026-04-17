@@ -26,6 +26,11 @@ Puedes añadir **otro servicio** en el mismo proyecto Railway que ejecute solo e
 
 3. **No** asignes un dominio público al daemon si no lo necesitas; basta con que salga a internet para hablar con tu API (egress).
 
+4. **Healthcheck (si el deploy falla en “Network / Healthcheck”)**  
+   Railway debe comprobar el **mismo puerto** que el daemon usa para salud (`PORT` inyectado) y la ruta **`/health`**.  
+   - En el servicio: **Settings → Healthcheck Path** = `/health` (o usa el archivo `railway-daemon.json` como config del servicio).  
+   - La imagen `Dockerfile.railway-daemon` define `MULTICA_USE_PORT_FOR_HEALTH=1` y `MULTICA_DAEMON_BIND_HEALTH_PUBLIC=1` para escuchar en `0.0.0.0:$PORT` (antes el daemon solo escuchaba en `127.0.0.1:19514`, invisible para Railway).
+
 La imagen incluye un **`claude` de stub** que solo responde a `--version`, para que el proceso de registro del daemon funcione. **Las tareas reales fallarán** hasta que sustituyas ese binario por un **Claude Code (u otro agente) real** en una imagen personalizada (por ejemplo instalando el CLI en capas extra del Dockerfile). El código del daemon también acepta `MULTICA_TOKEN` / `MULTICA_CLI_TOKEN` en el proceso (ver `server/internal/daemon/daemon.go`).
 
 Si usas **login desactivado** en la app, crea el PAT **antes** de desactivar login o habilita login temporalmente solo para generar el token.

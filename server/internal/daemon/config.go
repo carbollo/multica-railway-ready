@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -254,10 +255,22 @@ func LoadConfig(overrides Overrides) (Config, error) {
 		return Config{}, fmt.Errorf("resolve absolute workspaces root: %w", err)
 	}
 
-	// Health port: override > default
+	// Health port: CLI override > MULTICA_DAEMON_HEALTH_PORT > MULTICA_USE_PORT_FOR_HEALTH+PORT > default
 	healthPort := DefaultHealthPort
 	if overrides.HealthPort > 0 {
 		healthPort = overrides.HealthPort
+	} else {
+		if v := strings.TrimSpace(os.Getenv("MULTICA_DAEMON_HEALTH_PORT")); v != "" {
+			if p, err := strconv.Atoi(v); err == nil && p > 0 {
+				healthPort = p
+			}
+		} else if envEnabled(os.Getenv("MULTICA_USE_PORT_FOR_HEALTH")) {
+			if v := strings.TrimSpace(os.Getenv("PORT")); v != "" {
+				if p, err := strconv.Atoi(v); err == nil && p > 0 {
+					healthPort = p
+				}
+			}
+		}
 	}
 
 	// Keep env after task: env > default (false)
@@ -325,4 +338,13 @@ func NormalizeServerBaseURL(raw string) (string, error) {
 	u.RawQuery = ""
 	u.Fragment = ""
 	return strings.TrimRight(u.String(), "/"), nil
+}
+
+func envEnabled(v string) bool {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }

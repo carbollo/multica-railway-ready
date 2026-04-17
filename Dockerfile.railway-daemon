@@ -31,6 +31,9 @@ COPY docker/daemon-railway.sh /usr/local/bin/daemon-railway.sh
 RUN sed -i 's/\r$//' /usr/local/bin/daemon-railway.sh && chmod +x /usr/local/bin/daemon-railway.sh
 
 ENV HOME=/var/lib/multica
+# Railway injects PORT and runs HTTP healthchecks against it; bind health on 0.0.0.0.
+ENV MULTICA_USE_PORT_FOR_HEALTH=1
+ENV MULTICA_DAEMON_BIND_HEALTH_PUBLIC=1
 RUN mkdir -p /var/lib/multica && chmod 755 /var/lib/multica
 
 WORKDIR /var/lib/multica
