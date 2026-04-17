@@ -1,0 +1,72 @@
+FROM golang:1.26-alpine AS go-builder
+
+RUN apk add --no-cache git
+WORKDIR /src
+
+COPY server/go.mod server/go.sum ./server/
+RUN cd server && go mod download
+COPY server/ ./server/
+
+RUN cd server && CGO_ENABLED=0 go build -ldflags "-s -w" -o bin/server ./cmd/server
+RUN cd server && CGO_ENABLED=0 go build -ldflags "-s -w" -o bin/migrate ./cmd/migrate
+
+FROM node:22-alpine AS web-deps
+
+RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
+WORKDIR /app
+
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json .npmrc ./
+COPY apps/web/package.json apps/web/
+COPY packages/core/package.json packages/core/
+COPY packages/ui/package.json packages/ui/
+COPY packages/views/package.json packages/views/
+COPY packages/tsconfig/package.json packages/tsconfig/
+COPY packages/eslint-config/package.json packages/eslint-config/
+
+RUN pnpm install --frozen-lockfile
+
+FROM node:22-alpine AS web-builder
+
+RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
+WORKDIR /app
+
+COPY --from=web-deps /app ./
+COPY package.json turbo.json pnpm-workspace.yaml ./
+COPY apps/web/ apps/web/
+COPY packages/ packages/
+
+RUN pnpm install --frozen-lockfile --offline
+
+ARG REMOTE_API_URL=http://127.0.0.1:8080
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
+ARG NEXT_PUBLIC_WS_URL
+ENV REMOTE_API_URL=$REMOTE_API_URL
+ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+ENV STANDALONE=true
+
+RUN pnpm --filter @multica/web build
+
+FROM node:22-alpine AS runtime
+
+WORKDIR /app
+ENV NODE_ENV=production
+ENV BACKEND_PORT=8080
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+RUN apk add --no-cache ca-certificates tzdata
+
+COPY --from=go-builder /src/server/bin/server /app/server
+COPY --from=go-builder /src/server/bin/migrate /app/migrate
+COPY --from=go-builder /src/server/migrations /app/migrations
+
+COPY --from=web-builder /app/apps/web/.next/standalone /app/
+COPY --from=web-builder /app/apps/web/.next/static /app/apps/web/.next/static
+COPY --from=web-builder /app/apps/web/public /app/apps/web/public
+
+COPY docker/entrypoint.railway.sh /app/entrypoint.railway.sh
+RUN sed -i 's/\r$//' /app/entrypoint.railway.sh && chmod +x /app/entrypoint.railway.sh
+
+EXPOSE 3000
+ENTRYPOINT ["/app/entrypoint.railway.sh"]

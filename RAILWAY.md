@@ -1,11 +1,33 @@
 # Deploying Multica on Railway
 
-This setup uses two Railway services from the same repository:
+## Recommended for your current setup: one Railway service + Postgres
+
+This repository includes `Dockerfile.railway` and `railway.json` to run frontend and backend in one container, which matches a Railway project with a single app service and one PostgreSQL service.
+
+### Required variables (single-service mode)
+
+- `DATABASE_URL=${{Postgres.DATABASE_URL}}` (or `DATABASE_PRIVATE_URL`)
+- `DATABASE_SSLMODE=require`
+- `JWT_SECRET=<random-long-secret>`
+- `FRONTEND_ORIGIN=https://<your-railway-domain>`
+- `MULTICA_APP_URL=https://<your-railway-domain>`
+- `PORT` is injected by Railway automatically
+
+### Notes
+
+- Public URL serves the frontend.
+- Backend runs internally on `8080`.
+- Next.js rewrites `/api`, `/ws`, `/auth`, and `/uploads` to internal backend automatically.
+- Migrations run on boot before server start.
+
+---
+
+## Alternative: two Railway services from same repository
 
 1. `multica-backend` using `Dockerfile`
 2. `multica-frontend` using `Dockerfile.web`
 
-You can also add a Railway PostgreSQL service, then connect it to the backend with `DATABASE_URL`.
+Then add a Railway PostgreSQL service, and connect it with `DATABASE_URL`.
 
 ## 1) Backend service (`multica-backend`)
 
