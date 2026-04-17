@@ -1,8 +1,32 @@
 # Deploying Multica on Railway
 
+## “Todo en Railway”: qué significa aquí
+
+En la práctica, **toda la aplicación Multica en la nube** en Railway es esto:
+
+| Pieza | Dónde |
+|--------|--------|
+| **PostgreSQL** | Servicio **Postgres** de Railway (plugin) |
+| **Web (Next.js)** + **API (Go)** + **migraciones** | **Un solo servicio** con `Dockerfile.railway` (un contenedor, un dominio público) |
+
+Eso es **100 % de la app y la base de datos** en Railway: no necesitas VPS aparte para la web ni el API.
+
+Lo que **no** vive “dentro” de Railway por diseño de Multica es el **runtime donde ejecutan los agentes** (Claude, Codex, etc.): eso suele ser **tu PC** con `multica daemon start`, porque ahí están los binarios de los agentes y tu código. Puedes tener **servidor y BD solo en Railway** y el **daemon en local** apuntando a tu URL `https://*.up.railway.app`. Montar el daemon también en Railway como worker es posible en teoría, pero implica contenedor con herramientas instaladas y no es el flujo por defecto.
+
+---
+
 ## Recommended for your current setup: one Railway service + Postgres
 
 This repository includes `Dockerfile.railway` and `railway.json` to run frontend and backend in one container, which matches a Railway project with a single app service and one PostgreSQL service.
+
+### Checklist: proyecto nuevo “solo Railway”
+
+1. Crea un **proyecto** en Railway y añade **PostgreSQL**.
+2. Crea un **servicio** desde tu repo GitHub con **Dockerfile** → ruta `Dockerfile.railway` (o deja que `railway.json` lo fije).
+3. En el servicio de la app, **conecta** la variable `DATABASE_URL` al Postgres (`${{NombreDelPostgres.DATABASE_URL}}`).
+4. Rellena las variables de la tabla de abajo (misma URL pública para `FRONTEND_ORIGIN` y `MULTICA_APP_URL`).
+5. Genera un **dominio** público para el servicio y úsalo en el navegador y en el CLI (`server_url` / `app_url`).
+6. Redeploy y comprueba que carga la UI.
 
 ### Required variables (single-service mode)
 
