@@ -1,0 +1,38 @@
+# Multica daemon for Railway (or any container host).
+# Build the multica CLI, ship a stub `claude` on PATH so registration works;
+# replace the stub with a real agent install to execute tasks.
+
+FROM golang:1.26-bookworm AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+
+COPY server/go.mod server/go.sum ./server/
+RUN cd server && go mod download
+COPY server/ ./server/
+
+RUN cd server && CGO_ENABLED=0 go build -ldflags "-s -w" -o bin/multica ./cmd/multica
+
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates git curl \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /src/server/bin/multica /usr/local/bin/multica
+RUN chmod +x /usr/local/bin/multica
+
+COPY docker/stub-claude.sh /usr/local/bin/claude
+RUN chmod +x /usr/local/bin/claude
+
+COPY docker/daemon-railway.sh /usr/local/bin/daemon-railway.sh
+RUN sed -i 's/\r$//' /usr/local/bin/daemon-railway.sh && chmod +x /usr/local/bin/daemon-railway.sh
+
+ENV HOME=/var/lib/multica
+RUN mkdir -p /var/lib/multica && chmod 755 /var/lib/multica
+
+WORKDIR /var/lib/multica
+
+ENTRYPOINT ["/usr/local/bin/daemon-railway.sh"]

@@ -11,7 +11,24 @@ En la práctica, **toda la aplicación Multica en la nube** en Railway es esto:
 
 Eso es **100 % de la app y la base de datos** en Railway: no necesitas VPS aparte para la web ni el API.
 
-Lo que **no** vive “dentro” de Railway por diseño de Multica es el **runtime donde ejecutan los agentes** (Claude, Codex, etc.): eso suele ser **tu PC** con `multica daemon start`, porque ahí están los binarios de los agentes y tu código. Puedes tener **servidor y BD solo en Railway** y el **daemon en local** apuntando a tu URL `https://*.up.railway.app`. Montar el daemon también en Railway como worker es posible en teoría, pero implica contenedor con herramientas instaladas y no es el flujo por defecto.
+### Daemon (runtime) también en Railway — segundo servicio
+
+Puedes añadir **otro servicio** en el mismo proyecto Railway que ejecute solo el **daemon** con `Dockerfile.railway-daemon`.
+
+1. En Railway: **New service** → mismo repo → **Dockerfile path**: `Dockerfile.railway-daemon`.
+2. Variables de entorno (mínimo):
+
+| Variable | Valor |
+|----------|--------|
+| `MULTICA_SERVER_URL` | Misma base HTTPS que la app web, p. ej. `https://tu-app.up.railway.app` (sin `/` final). |
+| `MULTICA_TOKEN` | Token personal `mul_...` creado en la web (**Settings → Personal Access Tokens** o equivalente). Cópialo como **secret** en Railway. |
+| `MULTICA_DAEMON_DEVICE_NAME` | (Opcional) Nombre visible, p. ej. `railway-daemon`. |
+
+3. **No** asignes un dominio público al daemon si no lo necesitas; basta con que salga a internet para hablar con tu API (egress).
+
+La imagen incluye un **`claude` de stub** que solo responde a `--version`, para que el proceso de registro del daemon funcione. **Las tareas reales fallarán** hasta que sustituyas ese binario por un **Claude Code (u otro agente) real** en una imagen personalizada (por ejemplo instalando el CLI en capas extra del Dockerfile). El código del daemon también acepta `MULTICA_TOKEN` / `MULTICA_CLI_TOKEN` en el proceso (ver `server/internal/daemon/daemon.go`).
+
+Si usas **login desactivado** en la app, crea el PAT **antes** de desactivar login o habilita login temporalmente solo para generar el token.
 
 ---
 

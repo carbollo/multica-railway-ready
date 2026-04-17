@@ -159,6 +159,16 @@ func (d *Daemon) deregisterRuntimes() {
 
 // resolveAuth loads the auth token from the CLI config for the active profile.
 func (d *Daemon) resolveAuth() error {
+	if t := strings.TrimSpace(os.Getenv("MULTICA_TOKEN")); t != "" {
+		d.client.SetToken(t)
+		d.logger.Info("authenticated via MULTICA_TOKEN")
+		return nil
+	}
+	if t := strings.TrimSpace(os.Getenv("MULTICA_CLI_TOKEN")); t != "" {
+		d.client.SetToken(t)
+		d.logger.Info("authenticated via MULTICA_CLI_TOKEN")
+		return nil
+	}
 	cfg, err := cli.LoadCLIConfigForProfile(d.cfg.Profile)
 	if err != nil {
 		return fmt.Errorf("load CLI config: %w", err)
@@ -169,7 +179,7 @@ func (d *Daemon) resolveAuth() error {
 			loginHint = fmt.Sprintf("'multica login --profile %s'", d.cfg.Profile)
 		}
 		d.logger.Warn("not authenticated — run " + loginHint + " to authenticate, then restart the daemon")
-		return fmt.Errorf("not authenticated: run %s first", loginHint)
+		return fmt.Errorf("not authenticated: run %s first (or set MULTICA_TOKEN)", loginHint)
 	}
 	d.client.SetToken(cfg.Token)
 	d.logger.Info("authenticated")
