@@ -1,5 +1,6 @@
 export { createAuthStore } from "./store";
 export type { AuthStoreOptions, AuthState } from "./store";
+export { isAuthDisabledFromEnv } from "./auth-disabled";
 
 import type { createAuthStore as CreateAuthStoreFn } from "./store";
 

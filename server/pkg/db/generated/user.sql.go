@@ -75,6 +75,26 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	return i, err
 }
 
+const getFirstUser = `-- name: GetFirstUser :one
+SELECT id, name, email, avatar_url, created_at, updated_at FROM "user"
+ORDER BY created_at ASC
+LIMIT 1
+`
+
+func (q *Queries) GetFirstUser(ctx context.Context) (User, error) {
+	row := q.db.QueryRow(ctx, getFirstUser)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.AvatarUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateUser = `-- name: UpdateUser :one
 UPDATE "user" SET
     name = COALESCE($2, name),

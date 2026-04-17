@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { WorkspaceSlugProvider, paths } from "@multica/core/paths";
 import { workspaceBySlugOptions } from "@multica/core/workspace";
 import { setCurrentWorkspace } from "@multica/core/platform";
-import { useAuthStore } from "@multica/core/auth";
+import { isAuthDisabledFromEnv, useAuthStore } from "@multica/core/auth";
 import { NoAccessPage } from "@multica/views/workspace/no-access-page";
 import { MulticaIcon } from "@multica/ui/components/common/multica-icon";
 import { useWorkspaceSeen } from "@multica/views/workspace/use-workspace-seen";
@@ -28,14 +28,16 @@ export default function WorkspaceLayout({
   // to /login. Without this, the layout renders null and the user sees a
   // blank page stuck on /{slug}/...
   useEffect(() => {
-    if (!isAuthLoading && !user) router.replace(paths.login());
+    if (!isAuthLoading && !user && !isAuthDisabledFromEnv()) {
+      router.replace(paths.login());
+    }
   }, [isAuthLoading, user, router]);
 
   // Resolve workspace by slug from the React Query list cache.
   // Enabled only when user is authenticated — otherwise the list query isn't seeded.
   const { data: workspace, isFetched: listFetched } = useQuery({
     ...workspaceBySlugOptions(workspaceSlug),
-    enabled: !!user,
+    enabled: !!user || isAuthDisabledFromEnv(),
   });
 
   // Render-phase sync: feed the URL slug into the platform singleton so

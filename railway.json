@@ -4,7 +4,8 @@
     "builder": "DOCKERFILE",
     "dockerfilePath": "Dockerfile.railway",
     "buildArgs": {
-      "REMOTE_API_URL": "http://127.0.0.1:8081"
+      "REMOTE_API_URL": "http://127.0.0.1:8081",
+      "NEXT_PUBLIC_MULTICA_DISABLE_AUTH": "1"
     }
   },
   "deploy": {

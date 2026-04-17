@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAuthStore } from "@multica/core/auth";
+import { isAuthDisabledFromEnv, useAuthStore } from "@multica/core/auth";
 import { paths } from "@multica/core/paths";
 import { workspaceListOptions } from "@multica/core/workspace/queries";
 import { NewWorkspacePage } from "@multica/views/workspace/new-workspace-page";
@@ -14,14 +14,18 @@ export default function Page() {
   const isLoading = useAuthStore((s) => s.isLoading);
   const { data: wsList = [] } = useQuery({
     ...workspaceListOptions(),
-    enabled: !!user,
+    enabled: !!user || isAuthDisabledFromEnv(),
   });
 
   useEffect(() => {
-    if (!isLoading && !user) router.replace(paths.login());
+    if (!isLoading && !user && !isAuthDisabledFromEnv()) {
+      router.replace(paths.login());
+    }
   }, [isLoading, user, router]);
 
-  if (isLoading || !user) return null;
+  if (isLoading) return null;
+  if (!user && !isAuthDisabledFromEnv()) return null;
+  if (!user) return null;
 
   // Back goes to the root path — the workspace layout redirects from
   // there to the user's default workspace. Only show Back when there's

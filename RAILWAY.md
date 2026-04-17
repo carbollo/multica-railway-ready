@@ -13,6 +13,8 @@ This repository includes `Dockerfile.railway` and `railway.json` to run frontend
 - `MULTICA_APP_URL=https://<your-railway-domain>`
 - `PORT` is injected by Railway automatically
 
+The default `Dockerfile.railway` image enables **no-login mode** (`MULTICA_DISABLE_AUTH` + `NEXT_PUBLIC_MULTICA_DISABLE_AUTH` baked in). To require normal login again, rebuild with build args `NEXT_PUBLIC_MULTICA_DISABLE_AUTH=0` and set runtime `MULTICA_DISABLE_AUTH=0` (or remove those envs and use the standard Dockerfiles).
+
 ### Notes
 
 - Public URL serves the frontend.

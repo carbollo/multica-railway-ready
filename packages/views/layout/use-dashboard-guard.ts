@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigationStore } from "@multica/core/navigation";
-import { useAuthStore } from "@multica/core/auth";
+import { isAuthDisabledFromEnv, useAuthStore } from "@multica/core/auth";
 import { useCurrentWorkspace, paths } from "@multica/core/paths";
 import { workspaceListOptions } from "@multica/core/workspace";
 import { useNavigation } from "../navigation";
@@ -29,12 +29,12 @@ export function useDashboardGuard() {
   const workspace = useCurrentWorkspace();
   const { isFetched: workspaceListFetched } = useQuery({
     ...workspaceListOptions(),
-    enabled: !!user,
+    enabled: !!user || isAuthDisabledFromEnv(),
   });
 
   useEffect(() => {
     if (isLoading) return;
-    if (!user) {
+    if (!user && !isAuthDisabledFromEnv()) {
       replace(paths.login());
       return;
     }

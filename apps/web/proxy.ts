@@ -17,9 +17,15 @@ const LEGACY_ROUTE_SEGMENTS = new Set([
 ]);
 
 // Next.js 16 renamed `middleware` → `proxy`. The runtime API is identical.
+function authDisabledFromEnv(): boolean {
+  const v = process.env.NEXT_PUBLIC_MULTICA_DISABLE_AUTH;
+  return v === "1" || v === "true" || v === "yes";
+}
+
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const hasSession = req.cookies.has("multica_logged_in");
+  const hasSession =
+    req.cookies.has("multica_logged_in") || authDisabledFromEnv();
   const lastSlug = req.cookies.get("last_workspace_slug")?.value;
 
   // --- Legacy URL redirect: /issues/... → /{slug}/issues/... ---

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/multica-ai/multica/server/internal/auth"
+	"github.com/multica-ai/multica/server/internal/authbootstrap"
 	"github.com/multica-ai/multica/server/internal/events"
 	"github.com/multica-ai/multica/server/internal/handler"
 	"github.com/multica-ai/multica/server/internal/middleware"
@@ -55,6 +57,9 @@ func allowedOrigins() []string {
 // NewRouter creates the fully-configured Chi router with all middleware and routes.
 func NewRouter(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus) chi.Router {
 	queries := db.New(pool)
+	if authbootstrap.IsAuthDisabled() {
+		slog.Warn("MULTICA_DISABLE_AUTH is enabled — all API requests use a shared anonymous user; do not expose this on the public internet")
+	}
 	emailSvc := service.NewEmailService()
 
 	// Initialize storage with S3 as primary, fallback to local
@@ -109,7 +114,7 @@ func NewRouter(pool *pgxpool.Pool, hub *realtime.Hub, bus *events.Bus) chi.Route
 		return util.UUIDToString(ws.ID), nil
 	})
 	r.Get("/ws", func(w http.ResponseWriter, r *http.Request) {
-		realtime.HandleWebSocket(hub, mc, pr, slugResolver, w, r)
+		realtime.HandleWebSocket(hub, mc, pr, slugResolver, queries, w, r)
 	})
 
 	// Local file serving (when using local storage)

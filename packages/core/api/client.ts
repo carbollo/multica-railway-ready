@@ -530,7 +530,7 @@ export class ApiClient {
   }
 
   // App Config
-  async getConfig(): Promise<{ cdn_domain: string }> {
+  async getConfig(): Promise<{ cdn_domain: string; auth_disabled?: boolean }> {
     return this.fetch("/api/config");
   }
 

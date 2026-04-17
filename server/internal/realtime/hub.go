@@ -14,6 +14,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
 	"github.com/multica-ai/multica/server/internal/auth"
+	"github.com/multica-ai/multica/server/internal/authbootstrap"
+	"github.com/multica-ai/multica/server/internal/util"
+	db "github.com/multica-ai/multica/server/pkg/db/generated"
 )
 
 // MembershipChecker verifies a user belongs to a workspace.
@@ -355,7 +358,7 @@ func firstMessageAuth(conn *websocket.Conn) (string, string) {
 
 // HandleWebSocket upgrades an HTTP connection to WebSocket with cookie or first-message auth.
 // resolveSlug may be nil if slug-based identification is not needed (e.g. in tests).
-func HandleWebSocket(hub *Hub, mc MembershipChecker, pr PATResolver, resolveSlug SlugResolver, w http.ResponseWriter, r *http.Request) {
+func HandleWebSocket(hub *Hub, mc MembershipChecker, pr PATResolver, resolveSlug SlugResolver, queries *db.Queries, w http.ResponseWriter, r *http.Request) {
 	workspaceID := r.URL.Query().Get("workspace_id")
 	if workspaceID == "" {
 		if slug := r.URL.Query().Get("workspace_slug"); slug != "" && resolveSlug != nil {
@@ -380,6 +383,21 @@ func HandleWebSocket(hub *Hub, mc MembershipChecker, pr PATResolver, resolveSlug
 			http.Error(w, errMsg, http.StatusUnauthorized)
 			return
 		}
+		if !mc.IsMember(r.Context(), uid, workspaceID) {
+			http.Error(w, `{"error":"not a member of this workspace"}`, http.StatusForbidden)
+			return
+		}
+		userID = uid
+	}
+
+	if userID == "" && authbootstrap.IsAuthDisabled() && queries != nil {
+		u, err := authbootstrap.ResolveAnonymousUser(r.Context(), queries)
+		if err != nil {
+			slog.Error("ws: disabled-auth bootstrap failed", "error", err)
+			http.Error(w, `{"error":"auth bootstrap failed"}`, http.StatusInternalServerError)
+			return
+		}
+		uid := util.UUIDToString(u.ID)
 		if !mc.IsMember(r.Context(), uid, workspaceID) {
 			http.Error(w, `{"error":"not a member of this workspace"}`, http.StatusForbidden)
 			return

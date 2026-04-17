@@ -6,6 +6,11 @@ WHERE id = $1;
 SELECT * FROM "user"
 WHERE email = $1;
 
+-- name: GetFirstUser :one
+SELECT id, name, email, avatar_url, created_at, updated_at FROM "user"
+ORDER BY created_at ASC
+LIMIT 1;
+
 -- name: CreateUser :one
 INSERT INTO "user" (name, email, avatar_url)
 VALUES ($1, $2, $3)

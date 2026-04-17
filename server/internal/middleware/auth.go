@@ -9,6 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/multica-ai/multica/server/internal/auth"
+	"github.com/multica-ai/multica/server/internal/authbootstrap"
 	"github.com/multica-ai/multica/server/internal/util"
 	db "github.com/multica-ai/multica/server/pkg/db/generated"
 )
@@ -24,6 +25,19 @@ func uuidToString(u pgtype.UUID) string { return util.UUIDToString(u) }
 func Auth(queries *db.Queries) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if authbootstrap.IsAuthDisabled() && queries != nil {
+				u, err := authbootstrap.ResolveAnonymousUser(r.Context(), queries)
+				if err != nil {
+					slog.Error("auth: disabled-auth bootstrap failed", "error", err)
+					http.Error(w, `{"error":"auth bootstrap failed"}`, http.StatusInternalServerError)
+					return
+				}
+				r.Header.Set("X-User-ID", uuidToString(u.ID))
+				r.Header.Set("X-User-Email", u.Email)
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			tokenString, fromCookie := extractToken(r)
 			if tokenString == "" {
 				slog.Debug("auth: no token found", "path", r.URL.Path)
